@@ -1,0 +1,5 @@
+quixstreams==3.23.2
+flask
+flask_cors
+waitress
+python-dotenv

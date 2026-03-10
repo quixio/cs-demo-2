@@ -1,0 +1,11 @@
+name: http-api-source-ui
+language: python
+variables:
+  - name: input
+    inputType: InputTopic
+    description: Topic to consume magnetometer data from
+    defaultValue: table-data
+    required: true
+dockerfile: dockerfile
+runEntryPoint: main.py
+defaultFile: main.py
