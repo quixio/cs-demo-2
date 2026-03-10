@@ -1,0 +1,17 @@
+name: ui
+language: python
+variables:
+  - name: output
+    inputType: OutputTopic
+    description: This is the output topic for hello world data
+    defaultValue: http-source
+    required: true
+  - name: input
+    inputType: InputTopic
+    description: The topic to consume magnetometer data from
+    defaultValue: table-data
+    required: true
+dockerfile: dockerfile
+runEntryPoint: main.py
+defaultFile: main.py
+libraryItemId: web-api-gateway

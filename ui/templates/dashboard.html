@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magnetometer Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #1e3a5f;
+      color: #60a5fa;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    .status-dot.error     { background: #ef4444; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3448;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .card .axis-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .card .value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .card .unit {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .card.x .axis-label, .card.x .value { color: #f87171; }
+    .card.y .axis-label, .card.y .value { color: #4ade80; }
+    .card.z .axis-label, .card.z .value { color: #60a5fa; }
+
+    .chart-wrap {
+      background: #1a1f2e;
+      border: 1px solid #2d3448;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .chart-wrap h2 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+
+    canvas { display: block; width: 100% !important; }
+
+    footer {
+      margin-top: 20px;
+      font-size: 0.75rem;
+      color: #475569;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="status-dot" id="dot"></div>
+    <h1>Magnetometer Dashboard</h1>
+    <span class="badge">{{ topic }}</span>
+  </header>
+
+  <div class="cards">
+    <div class="card x">
+      <div class="axis-label">X Axis</div>
+      <div class="value" id="val-x">—</div>
+      <div class="unit">µT</div>
+    </div>
+    <div class="card y">
+      <div class="axis-label">Y Axis</div>
+      <div class="value" id="val-y">—</div>
+      <div class="unit">µT</div>
+    </div>
+    <div class="card z">
+      <div class="axis-label">Z Axis</div>
+      <div class="value" id="val-z">—</div>
+      <div class="unit">µT</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <h2>Live Time-Series (last 100 samples)</h2>
+    <canvas id="chart" height="90"></canvas>
+  </div>
+
+  <footer id="last-updated">Waiting for data…</footer>
+
+  <script>
+    const MAX_POINTS = 100;
+
+    const labels = [];
+    const datasets = {
+      x: { label: 'X', data: [], borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+      y: { label: 'Y', data: [], borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+      z: { label: 'Z', data: [], borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+    };
+
+    const chart = new Chart(document.getElementById('chart').getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [datasets.x, datasets.y, datasets.z] },
+      options: {
+        animation: false,
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: {
+            ticks: { color: '#475569', maxTicksLimit: 8, maxRotation: 0 },
+            grid: { color: '#1e293b' },
+          },
+          y: {
+            ticks: { color: '#475569' },
+            grid: { color: '#1e293b' },
+          },
+        },
+        plugins: {
+          legend: { labels: { color: '#94a3b8', boxWidth: 12 } },
+        },
+      },
+    });
+
+    function push(msg) {
+      const ts = msg.time
+        ? new Date(msg.time / 1e6).toISOString().substr(11, 12)
+        : new Date().toISOString().substr(11, 12);
+
+      labels.push(ts);
+      datasets.x.data.push(msg['magnetometer-x'] ?? null);
+      datasets.y.data.push(msg['magnetometer-y'] ?? null);
+      datasets.z.data.push(msg['magnetometer-z'] ?? null);
+
+      if (labels.length > MAX_POINTS) {
+        labels.shift();
+        datasets.x.data.shift();
+        datasets.y.data.shift();
+        datasets.z.data.shift();
+      }
+
+      chart.update('none');
+
+      const fmt = v => v != null ? v.toFixed(2) : '—';
+      document.getElementById('val-x').textContent = fmt(msg['magnetometer-x']);
+      document.getElementById('val-y').textContent = fmt(msg['magnetometer-y']);
+      document.getElementById('val-z').textContent = fmt(msg['magnetometer-z']);
+      document.getElementById('last-updated').textContent =
+        `Last updated: ${new Date().toLocaleTimeString()}`;
+    }
+
+    const dot = document.getElementById('dot');
+
+    function connect() {
+      const es = new EventSource('/events');
+
+      es.onopen = () => dot.className = 'status-dot connected';
+
+      es.onmessage = e => {
+        try { push(JSON.parse(e.data)); } catch (_) {}
+      };
+
+      es.onerror = () => {
+        dot.className = 'status-dot error';
+        es.close();
+        setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+  </script>
+</body>
+</html>
