@@ -24,7 +24,6 @@ sse_clients_lock = threading.Lock()
 
 quix_app = Application(
     auto_offset_reset="latest",
-    auto_commit_enable=True,
 )
 input_topic = os.environ["input"]
 
