@@ -28,3 +28,4 @@ deployments:
 topics:
   - name: http-source
   - name: raw
+  - name: table-data
