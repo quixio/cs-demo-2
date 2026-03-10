@@ -40,6 +40,25 @@ deployments:
         inputType: OutputTopic
         description: Name of the output topic to write to.
         value: table-data
+  - name: ui
+    application: ui
+    version: latest
+    deploymentType: Service
+    resources:
+      cpu: 200
+      memory: 500
+      replicas: 1
+    variables:
+      - name: output
+        inputType: OutputTopic
+        description: This is the output topic for hello world data
+        required: true
+        value: http-source
+      - name: input
+        inputType: InputTopic
+        description: The topic to consume magnetometer data from
+        required: true
+        value: table-data
 
 # This section describes the Topics of the data pipeline
 topics:
