@@ -57,6 +57,11 @@ deployments:
         description: This is the output topic for hello world data
         required: true
         value: http-source
+      - name: input
+        inputType: InputTopic
+        description: Topic to consume accelerometer data from
+        required: true
+        value: table-data
 
 # This section describes the Topics of the data pipeline
 topics:
