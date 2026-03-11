@@ -297,5 +297,121 @@ def _(
     return
 
 
+@app.cell
+def _(client, selected_end_datetime, selected_start_datetime):
+    from zoneinfo import ZoneInfo
+
+    # Define CET timezone using a proper IANA timezone identifier
+    cet_tz = ZoneInfo('Europe/Berlin')
+
+    # Convert selected dates to CET timezone
+    selected_start_cet = selected_start_datetime.replace(tzinfo=cet_tz)
+    selected_end_cet = selected_end_datetime.replace(tzinfo=cet_tz)
+
+    # Convert to UTC for the database query
+    selected_start_utc = selected_start_cet.astimezone(ZoneInfo('UTC'))
+    selected_end_utc = selected_end_cet.astimezone(ZoneInfo('UTC'))
+
+    # Generate SQL query with UTC times (database expects UTC)
+    cet_range_sql = f"""
+    SELECT 
+      DATE_TRUNC('minutes', to_timestamp(time/1000000000)) as "time_bucket",
+      sum(abs("accelerometer-z")) as acc_z,
+      sum(abs("accelerometer-y")) as acc_y,
+      sum(abs("accelerometer-x")) as acc_x,
+      count("accelerometer-z") as "count"
+    FROM ludvik
+    WHERE  "accelerometer-z" is not NULL 
+      AND time_bucket >= '{selected_start_utc.strftime('%Y-%m-%d %H:%M:%S')}+00:00'
+      AND time_bucket < '{selected_end_utc.strftime('%Y-%m-%d %H:%M:%S')}+00:00'
+    GROUP BY time_bucket
+    ORDER BY time_bucket
+    LIMIT 1000
+    """.strip()
+
+    # Query data for selected time range
+    cet_df = client.query(cet_range_sql)
+    return (
+        cet_df,
+        selected_end_cet,
+        selected_end_utc,
+        selected_start_cet,
+        selected_start_utc,
+    )
+
+
+@app.cell
+def _(cet_df, mo, px, selected_end_cet, selected_start_cet):
+    # Convert time_bucket from UTC to CET for display
+    import pandas as pd
+
+    if len(cet_df) > 0:
+        # Convert time_bucket to CET timezone for display
+        cet_df['time_bucket_cet'] = pd.to_datetime(cet_df['time_bucket']).dt.tz_convert('Europe/Berlin')
+    
+        # Calculate duration for display
+        duration_cet = selected_end_cet - selected_start_cet
+        duration_hours_cet = duration_cet.total_seconds() / 3600
+    
+        # Create plot with CET timezone
+        cet_fig = px.bar(
+            cet_df,
+            x="time_bucket_cet",
+            y=['acc_x', 'acc_y', 'acc_z'],
+            title=f"Accelerometer Data - Custom Range CET ({duration_hours_cet:.1f} hours)",
+            labels={
+                "time_bucket_cet": "Time (CET)",
+                "value": "Acceleration Sum",
+                "variable": "Accelerometer Axis"
+            },
+            barmode='stack',
+            color_discrete_map={
+                'acc_x': '#FF6B6B',
+                'acc_y': '#4ECDC4', 
+                'acc_z': '#45B7D1'
+            }
+        )
+    
+        cet_fig.update_layout(
+            xaxis_title="Time (CET)",
+            yaxis_title="Acceleration Sum",
+            legend_title="Accelerometer Axis",
+            height=500,
+            margin=dict(l=60, r=60, t=60, b=60)
+        )
+    
+        mo.ui.plotly(cet_fig)
+    else:
+        mo.md("No data found for the selected time range.")
+    return duration_cet, duration_hours_cet
+
+
+@app.cell
+def _(
+    cet_df,
+    duration_cet,
+    duration_hours_cet,
+    mo,
+    selected_end_cet,
+    selected_end_utc,
+    selected_start_cet,
+    selected_start_utc,
+):
+    mo.md(f"""
+    ### Custom Date Range Analysis (CET Timezone)
+
+    **Selected Time Range (CET):** {selected_start_cet.strftime('%Y-%m-%d %H:%M:%S %Z')} to {selected_end_cet.strftime('%Y-%m-%d %H:%M:%S %Z')}
+
+    **Selected Time Range (UTC):** {selected_start_utc.strftime('%Y-%m-%d %H:%M:%S %Z')} to {selected_end_utc.strftime('%Y-%m-%d %H:%M:%S %Z')}
+
+    **Duration:** {duration_hours_cet:.1f} hours ({int(duration_cet.total_seconds() / 60)} minutes)
+
+    **Data Points:** {len(cet_df)} time buckets
+
+    The plot now displays times in CET timezone while querying the database with the correct UTC times. Input times are treated as CET and automatically converted for database queries.
+    """)
+    return
+
+
 if __name__ == "__main__":
     app.run()
