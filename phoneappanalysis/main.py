@@ -48,13 +48,11 @@ def _(QuixLakeClient, os):
 def _(mo):
     # TODO: Modify the SQL query for your data
     default_query = """
-
-
     SELECT 
       DATE_TRUNC('minutes', to_timestamp(time/1000000000)) as "time_bucket",
-      sum("accelerometer-z") as acc_z,
-      sum("accelerometer-y") as acc_y,
-      sum("accelerometer-x") as acc_x,
+      sum(abs("accelerometer-z")) as acc_z,
+      sum(abs("accelerometer-y")) as acc_y,
+      sum(abs("accelerometer-x")) as acc_x,
       count("accelerometer-z") as "count"
     FROM ludvik
     WHERE  "accelerometer-z" is not NULL AND time_bucket >'2026-03-11 9:00:00+00:00'
@@ -92,39 +90,6 @@ def _(df, mo):
     )
     mo.ui.plotly(fig)
     return (px,)
-
-
-@app.cell
-def _(df, mo, px):
-    fig_bar_direct = px.bar(
-        df,
-        x="time_bucket",
-        y=['acc_x', 'acc_y', 'acc_z'],
-        title="Accelerometer Data (X, Y, Z) by Time Bucket",
-        labels={
-            "time_bucket": "Date",
-            "value": "Acceleration Sum",
-            "variable": "Accelerometer Axis"
-        },
-        barmode='group',
-        color_discrete_map={
-            'acc_x': '#FF6B6B',
-            'acc_y': '#4ECDC4', 
-            'acc_z': '#45B7D1'
-        }
-    )
-
-    # Update legend labels to be cleaner
-    fig_bar_direct.for_each_trace(lambda t: t.update(name = t.name.replace('sum("accelerometer-', 'acc_').replace('")', '')))
-
-    fig_bar_direct.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Acceleration Sum",
-        legend_title="Accelerometer Axis"
-    )
-
-    mo.ui.plotly(fig_bar_direct)
-    return
 
 
 @app.cell
