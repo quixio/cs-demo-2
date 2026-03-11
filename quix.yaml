@@ -141,7 +141,7 @@ deployments:
       - name: MARIMO_MODE
         inputType: Options
         description: Mode to run Marimo in
-        value: edit
+        value: run
       - name: MARIMO_NOTEBOOK
         inputType: FreeText
         description: The notebook file to open (e.g., main.py)
