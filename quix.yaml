@@ -150,6 +150,10 @@ deployments:
         inputType: Secret
         description: Token generated from https://platform.claude.com/settings/keys.
         secretKey: claude_api_token
+      - name: QUIXLAKE_TOKEN
+        inputType: Secret
+        required: true
+        secretKey: quixlake_pat
     plugin:
       embeddedView:
         enabled: true
@@ -158,6 +162,7 @@ deployments:
       sidebarItem:
         show: true
         icon: note_alt
+        order: 0
         badge: BETA
 
 # This section describes the Topics of the data pipeline
