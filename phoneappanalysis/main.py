@@ -55,7 +55,7 @@ def _(mo):
       sum(abs("accelerometer-x")) as acc_x,
       count("accelerometer-z") as "count"
     FROM ludvik
-    WHERE  "accelerometer-z" is not NULL AND time_bucket >'2026-03-11 9:00:00+00:00'
+    WHERE  "accelerometer-z" is not NULL AND time_bucket >'2026-03-11 12:00:00+00:00' AND time_bucket <'2026-03-11 13:00:00+00:00'
     GROUP BY time_bucket
     ORDER BY time_bucket
     LIMIT 1000
