@@ -25,6 +25,7 @@ deployments:
         required: true
         value: raw
   - name: Transformation
+    group: Ingestion
     application: transformation
     version: latest
     deploymentType: Service
