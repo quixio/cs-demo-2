@@ -46,8 +46,28 @@ def _(QuixLakeClient, os):
 
 @app.cell
 def _(mo):
-    # TODO: Modify the SQL query for your data
-    default_query = """
+    import datetime
+
+    # Create datetime pickers for start and end datetimes
+    start_datetime = mo.ui.datetime(
+        value=datetime.datetime(2026, 3, 11, 0, 0, 0),
+        label="Start Date & Time"
+    )
+
+    end_datetime = mo.ui.datetime(
+        value=datetime.datetime(2026, 3, 12, 23, 59, 59),
+        label="End Date & Time"
+    )
+
+    datetime_controls = mo.hstack([start_datetime, end_datetime])
+    datetime_controls
+    return end_datetime, start_datetime
+
+
+@app.cell
+def _(client, end_datetime, start_datetime):
+    # Parametrized SQL query using the datetime pickers
+    parametrized_query = f"""
     SELECT
       DATE_TRUNC('minutes', to_timestamp(time/1000000000)) as "time_bucket",
       sum(abs("accelerometer-z")) as "acc_z",
@@ -55,28 +75,53 @@ def _(mo):
       sum(abs("accelerometer-x")) as "acc_x",
       COUNT("accelerometer-z") as "count"
     FROM tomas
-    WHERE "accelerometer-z" IS NOT NULL and time_bucket > '2026-03-11'
+    WHERE "accelerometer-z" IS NOT NULL 
+      AND to_timestamp(time/1000000000) >= '{start_datetime.value}'
+      AND to_timestamp(time/1000000000) <= '{end_datetime.value}'
     GROUP BY time_bucket
     ORDER BY time_bucket
     LIMIT 100
     """.strip()
 
-    sql_form = mo.ui.code_editor(
-        value=default_query,
-        language="sql",
-        label="SQL query",
-        min_height=150,
-    ).form(submit_button_label="Run SQL")
-
-    sql_form
-    return (sql_form,)
+    # Execute the parametrized query and get the dataframe
+    df = client.query(parametrized_query)
+    df
+    return (df,)
 
 
 @app.cell
-def _(client, sql_form):
-    df = client.query(sql_form.value)
-    df
-    return (df,)
+def _():
+    # TODO: Modify the SQL query for your data
+    # default_query = """
+    # SELECT
+    #   DATE_TRUNC('minutes', to_timestamp(time/1000000000)) as "time_bucket",
+    #   sum(abs("accelerometer-z")) as "acc_z",
+    #   sum(abs("accelerometer-y")) as "acc_y",
+    #   sum(abs("accelerometer-x")) as "acc_x",
+    #   COUNT("accelerometer-z") as "count"
+    # FROM tomas
+    # WHERE "accelerometer-z" IS NOT NULL and time_bucket > '2026-03-11'
+    # GROUP BY time_bucket
+    # ORDER BY time_bucket
+    # LIMIT 100
+    # """.strip()
+
+    # sql_form = mo.ui.code_editor(
+    #     value=default_query,
+    #     language="sql",
+    #     label="SQL query",
+    #     min_height=150,
+    # ).form(submit_button_label="Run SQL")
+
+    # sql_form
+    return
+
+
+@app.cell
+def _():
+    # df = client.query(sql_form.value)
+    # df
+    return
 
 
 @app.cell
