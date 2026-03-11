@@ -51,10 +51,10 @@ def _(mo):
 
 
     SELECT 
-      DATE_TRUNC('hours', to_timestamp(time/1000000000)) as "time_bucket",
-      acc_z as acc_z,
-      acc_y as acc_y,
-      acc_x as acc_x,
+      DATE_TRUNC('minutes', to_timestamp(time/1000000000)) as "time_bucket",
+      sum("accelerometer-z") as acc_z,
+      sum("accelerometer-y") as acc_y,
+      sum("accelerometer-x") as acc_x,
       count("accelerometer-z") as "count"
     FROM ludvik
     WHERE  "accelerometer-z" is not NULL AND time_bucket >'2026-03-11 9:00:00+00:00'
