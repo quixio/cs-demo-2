@@ -49,15 +49,17 @@ def _(mo):
     # TODO: Modify the SQL query for your data
     default_query = """
 
+
     SELECT 
-      DATE_TRUNC('days', to_timestamp(time/1000000000)) as "time_bucket",
-      sum("accelerometer-z"),
-      sum("accelerometer-y"),
-      sum("accelerometer-x"),
+      DATE_TRUNC('hours', to_timestamp(time/1000000000)) as "time_bucket",
+      acc_z as acc_z,
+      acc_y as acc_y,
+      acc_x as acc_x,
       count("accelerometer-z") as "count"
     FROM ludvik
-    WHERE  "accelerometer-z" is not NULL
+    WHERE  "accelerometer-z" is not NULL AND time_bucket >'2026-03-11 9:00:00+00:00'
     GROUP BY time_bucket
+    ORDER BY time_bucket
     LIMIT 1000
     """.strip()
 
@@ -93,33 +95,68 @@ def _(df, mo):
 
 
 @app.cell
-def _(df_accel, mo, px):
-    fig_accel_bar = px.bar(
-        df_accel,
+def _(df, mo, px):
+    fig_bar_direct = px.bar(
+        df,
         x="time_bucket",
-        y="acceleration_sum",
-        color="axis",
+        y=['acc_x', 'acc_y', 'acc_z'],
         title="Accelerometer Data (X, Y, Z) by Time Bucket",
         labels={
             "time_bucket": "Date",
-            "acceleration_sum": "Acceleration Sum",
-            "axis": "Accelerometer Axis"
+            "value": "Acceleration Sum",
+            "variable": "Accelerometer Axis"
         },
         barmode='group',
         color_discrete_map={
-            'x': '#FF6B6B',
-            'y': '#4ECDC4', 
-            'z': '#45B7D1'
+            'acc_x': '#FF6B6B',
+            'acc_y': '#4ECDC4', 
+            'acc_z': '#45B7D1'
         }
     )
 
-    fig_accel_bar.update_layout(
+    # Update legend labels to be cleaner
+    fig_bar_direct.for_each_trace(lambda t: t.update(name = t.name.replace('sum("accelerometer-', 'acc_').replace('")', '')))
+
+    fig_bar_direct.update_layout(
         xaxis_title="Date",
         yaxis_title="Acceleration Sum",
-        legend_title="Axis"
+        legend_title="Accelerometer Axis"
     )
 
-    mo.ui.plotly(fig_accel_bar)
+    mo.ui.plotly(fig_bar_direct)
+    return
+
+
+@app.cell
+def _(df, mo, px):
+    fig_bar_stacked = px.bar(
+        df,
+        x="time_bucket",
+        y=['acc_x', 'acc_y', 'acc_z'],
+        title="Accelerometer Data (X, Y, Z) Stacked by Time Bucket",
+        labels={
+            "time_bucket": "Date",
+            "value": "Acceleration Sum",
+            "variable": "Accelerometer Axis"
+        },
+        barmode='stack',
+        color_discrete_map={
+            'acc_x': '#FF6B6B',
+            'acc_y': '#4ECDC4', 
+            'acc_z': '#45B7D1'
+        }
+    )
+
+    # Update legend labels to be cleaner
+    fig_bar_stacked.for_each_trace(lambda t: t.update(name = t.name.replace('sum("accelerometer-', 'acc_').replace('")', '')))
+
+    fig_bar_stacked.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Acceleration Sum",
+        legend_title="Accelerometer Axis"
+    )
+
+    mo.ui.plotly(fig_bar_stacked)
     return
 
 
