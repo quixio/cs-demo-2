@@ -80,7 +80,7 @@ def _(client, end_datetime, start_datetime):
       AND to_timestamp(time/1000000000) <= '{end_datetime.value}'
     GROUP BY time_bucket
     ORDER BY time_bucket
-    LIMIT 100
+    LIMIT 100000
     """.strip()
 
     # Execute the parametrized query and get the dataframe
