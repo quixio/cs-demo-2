@@ -84,11 +84,42 @@ def _(df, mo):
     import plotly.express as px
     fig = px.line(
         df,
-        x="time",
-        y="value",
+        x="time_bucket",
+        y="acc_x",
         title="Waveform",
     )
     mo.ui.plotly(fig)
+    return (px,)
+
+
+@app.cell
+def _(df_accel, mo, px):
+    fig_accel_bar = px.bar(
+        df_accel,
+        x="time_bucket",
+        y="acceleration_sum",
+        color="axis",
+        title="Accelerometer Data (X, Y, Z) by Time Bucket",
+        labels={
+            "time_bucket": "Date",
+            "acceleration_sum": "Acceleration Sum",
+            "axis": "Accelerometer Axis"
+        },
+        barmode='group',
+        color_discrete_map={
+            'x': '#FF6B6B',
+            'y': '#4ECDC4', 
+            'z': '#45B7D1'
+        }
+    )
+
+    fig_accel_bar.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Acceleration Sum",
+        legend_title="Axis"
+    )
+
+    mo.ui.plotly(fig_accel_bar)
     return
 
 
