@@ -29,7 +29,7 @@ logger = get_logger()
 data_buffer = deque(maxlen=500)
 data_lock = threading.Lock()
 
-
+# dummy line to update commit
 def consume_table_data():
     input_topic = quix_app.topic(os.environ["input"])
     with quix_app.get_consumer() as consumer:
