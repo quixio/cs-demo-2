@@ -39,7 +39,7 @@ def _(QuixLakeClient, os):
 
     client = QuixLakeClient(
         base_url=QUIXLAKE_URL,
-        token=os.environ["Quix__Sdk__Token"]
+        token=os.environ["QUIXLAKE_TOKEN"]
     )
     return (client,)
 
@@ -48,11 +48,16 @@ def _(QuixLakeClient, os):
 def _(mo):
     # TODO: Modify the SQL query for your data
     default_query = """
-    SELECT
-    Timestamp as time,
-    value
-    FROM your_table
-    ORDER BY Timestamp
+
+    SELECT 
+      DATE_TRUNC('days', to_timestamp(time/1000000000)) as "time_bucket",
+      sum("accelerometer-z"),
+      sum("accelerometer-y"),
+      sum("accelerometer-x"),
+      count("accelerometer-z") as "count"
+    FROM ludvik
+    WHERE  "accelerometer-z" is not NULL
+    GROUP BY time_bucket
     LIMIT 1000
     """.strip()
 
